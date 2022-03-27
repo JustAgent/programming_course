@@ -65,7 +65,7 @@ def correlation(array, array2):  # находим кэф коррелляции
     return r
 
 
-# ticker_list = ['OGZPY', 'TATN.ME', 'SBER.ME']  # , 'VTBR.ME']
+# ticker_list = ['OGZPY', 'TATN.ME', 'SBER.ME', 'VTBR.ME']
 ticker_list = ['OGZPY', 'TATN.ME', 'SBER.ME', 'VTBR.ME', 'ALRS.ME', 'AFLT.ME', 'HYDR.ME',
                'MOEX.ME', 'NLMK.ME', 'CHMF.ME', 'DSKY.ME', 'POLY.ME', 'YNDX', 'AFKS.ME',
                'LSRG.ME', 'LSNG.ME', 'LKOH.ME', 'MTSS.ME', 'NVTK.ME', 'PIKK.ME']
@@ -78,18 +78,19 @@ evgeniy_sum = 10000000
 anatoliy = {}
 boris = {}
 evgeniy = {}
-
+anatoliy_hist = []
+boris_hist = []
+evgeniy_hist = []
 for ticker in ticker_list:
     anatoliy[ticker] = 0
     boris[ticker] = 0
     evgeniy[ticker] = 0
     data = yf.download(ticker, start="2017-01-01", end="2019-12-31", interval="1d")
-    volume[ticker] = data['Volume']
+    volume[ticker] = data['Adj Close']
     array[ticker] = data['Adj Close']
     array[ticker] = deleteNan(array[ticker])
-
+# print(volume)
 for month in range(12):  # Для всех лет
-
     results1 = {}
     results0 = {}
     start = st * month
@@ -100,10 +101,11 @@ for month in range(12):  # Для всех лет
         anatoliy[ticker] = 0
         boris_sum += boris[ticker] * array[ticker][end]
         boris[ticker] = 0
-        # Евгеха
         evgeniy_sum += evgeniy[ticker] * array[ticker][end]
+        #print("ticker - array: ", evgeniy[ticker], array[ticker][end])
         evgeniy[ticker] = 0
-        #print(evgeniy_sum)
+    evgeniy_hist.append(evgeniy_sum)
+        # print(evgeniy_sum)
     for i in range(0, len(ticker_list) - 1):  # Берем первый элемент списка тикеров
         temp_arr1 = []
         for h in range(start, end):
@@ -115,14 +117,15 @@ for month in range(12):  # Для всех лет
             r = correlation(temp_arr1, temp_arr2)
             results1[r] = (ticker_list[i], ticker_list[j])
             results0[abs(r)] = (ticker_list[i], ticker_list[j])
-    #print(results1)   # Посмотретьь котировки ( их 4560 )
+    # print(results1)   # Посмотретьь котировки ( их 4560 )
     # Сортировка r
     sorted_results1 = list(results1)
     sorted_results1 = sorted(sorted_results1)
     sorted_results1.reverse()
     sorted_results0 = list(results0)
     sorted_results0 = sorted(sorted_results0)
-
+    anatoliy_hist.append(anatoliy_sum)
+    boris_hist.append(boris_sum)
     # Этап вложения
     for i in range(3):
         anatoliy[results1[sorted_results1[i]][0]] += (anatoliy_sum / 6) / array[results1[sorted_results1[i]][0]][end]
@@ -136,8 +139,7 @@ for month in range(12):  # Для всех лет
     for ticker in ticker_list:
         total_value_sum += volume[ticker][end]
     for ticker in ticker_list:
-        evgeniy[ticker] = (evgeniy_sum * (volume[ticker][end] / total_value_sum)) * 5.4 / (
-                array[ticker][end] * array[results1[sorted_results1[0]][0]][end])
+        evgeniy[ticker] = (evgeniy_sum * (volume[ticker][end] / total_value_sum)) / volume[ticker][end]
     evgeniy_sum = 0
 
 # Убираем оставшиеся акции
@@ -148,4 +150,12 @@ for ticker in ticker_list:
     boris[ticker] = 0
     evgeniy_sum += evgeniy[ticker] * volume[ticker][-1]
     evgeniy[ticker] = 0
+
 print(anatoliy_sum, boris_sum, evgeniy_sum)
+fig, ax = plt.subplots()
+ax.plot(anatoliy_hist)
+ax.plot(boris_hist)
+ax.plot(evgeniy_hist)
+plt.xlabel("Период")
+plt.ylabel("Баланс")
+plt.show()
